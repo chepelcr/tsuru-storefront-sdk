@@ -50,6 +50,21 @@ if (wa) window.open(whatsappUrl(wa, message));
 (`contact_settings.phone_country_code` → `countries.iso_code`); templates never
 map ISO codes. The wire is snake_case; `normalize.ts` maps it to these types.
 
+## Checkout orders (1.2.0)
+
+```ts
+const order = await client.createOrder({
+  customerName, customerPhone, deliveryMethod,
+  address: { stateId, countyId, districtId, neighborhoodId, address },  // data-be location ids
+  items: cart.map((i) => ({ productId: i.id, quantity: i.quantity })),
+  comment: null,
+});
+// order.trackingNumber → quote it in the WhatsApp hand-off
+```
+
+Creates a store-be storefront pedido (status `pending`) with the same structured
+address columns a POS order uses. Live stores only; demo mode rejects.
+
 ## Install (GitHub Packages)
 
 `.npmrc` in the consuming repo:

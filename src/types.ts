@@ -206,3 +206,44 @@ export interface WireTemplateContact {
   twitter_url: string | null;
   business_hours: unknown;
 }
+
+// ── Storefront orders (store-be CreateStorefrontOrderDTO) ──────────────────
+
+/**
+ * A guest order placed from the storefront checkout. The address uses the
+ * same data-be location ids as a POS order (provincia/cantón/distrito/barrio),
+ * so the pedido lands in the order list exactly like an internal one.
+ */
+export interface StorefrontOrderInput {
+  customerName: string;
+  customerPhone: string;
+  /** e.g. "correos", "uber-flash", "personal", "pickup" */
+  deliveryMethod: string | null;
+  address: {
+    stateId: number | null;
+    countyId: number | null;
+    districtId: number | null;
+    neighborhoodId: number | null;
+    /** Dirección exacta (otras señas). */
+    address: string;
+  } | null;
+  items: { productId: string; quantity: number }[];
+  comment: string | null;
+}
+
+export interface StorefrontOrderCreated {
+  orderId: number;
+  documentNumber: string;
+  /** Public number the customer quotes when following up (WhatsApp). */
+  trackingNumber: string;
+  orderStatus: string;
+  grandTotal: number | null;
+}
+
+export interface WireStorefrontOrderCreated {
+  order_id: number;
+  document_number: string;
+  tracking_number: string;
+  order_status: string;
+  grand_total: number | null;
+}

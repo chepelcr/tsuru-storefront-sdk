@@ -20,6 +20,9 @@ import type {
   WirePublicBranding,
   WirePublicContact,
   WireTemplateContact,
+  StorefrontOrderInput,
+  StorefrontOrderCreated,
+  WireStorefrontOrderCreated,
   StorefrontCategory,
   StorefrontProduct,
   StorefrontPage,
@@ -99,6 +102,43 @@ export function createStorefrontClient(opts: StorefrontClientOptions) {
     config,
     mode: config.mode,
     id,
+
+    /**
+     * Place a guest order with the store (live stores only — a demo template
+     * has no organization to receive it, so this rejects in demo mode).
+     */
+    async createOrder(input: StorefrontOrderInput): Promise<StorefrontOrderCreated> {
+      if (isDemo) throw new Error("Demo storefronts do not take orders");
+      const body = {
+        customer_name: input.customerName,
+        customer_phone: input.customerPhone,
+        delivery_method: input.deliveryMethod,
+        address: input.address && {
+          state_id: input.address.stateId,
+          county_id: input.address.countyId,
+          district_id: input.address.districtId,
+          neighborhood_id: input.address.neighborhoodId,
+          address: input.address.address,
+        },
+        items: input.items.map((i) => ({ product_id: i.productId, quantity: i.quantity })),
+        comment: input.comment,
+      };
+      const url = `${host}${commercePath("orders")}`;
+      const res = await signedFetch(url, region, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(`Storefront API ${res.status} for ${commercePath("orders")}`);
+      const created = (await res.json()) as WireStorefrontOrderCreated;
+      return {
+        orderId: created.order_id,
+        documentNumber: created.document_number,
+        trackingNumber: created.tracking_number,
+        orderStatus: created.order_status,
+        grandTotal: created.grand_total,
+      };
+    },
 
     /** The store's name, slug, description and owner logo. */
     async getOrganization(): Promise<StorefrontOrganization> {

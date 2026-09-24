@@ -32,6 +32,24 @@ const api = createStorefrontClient({ config: config! });
 const products = await api.getProducts();   // canonical StorefrontProduct[]
 ```
 
+## Store identity, branding and contact (1.1.0)
+
+Render the org's own data, never the template's placeholders:
+
+```ts
+const client = createStorefrontClient({ config });
+const org = await client.getOrganization();   // name, slug, description, logoUrl
+const theme = await client.getTheme();        // logoUrl = owner logo, else template's
+const contact = await client.getContact();    // phone/whatsapp: { countryCode, dialCode, number }
+
+const wa = whatsappPhone(contact);            // whatsapp, else phone, else null
+if (wa) window.open(whatsappUrl(wa, message));
+```
+
+`dialCode` is resolved by management-be through the countries catalog
+(`contact_settings.phone_country_code` → `countries.iso_code`); templates never
+map ISO codes. The wire is snake_case; `normalize.ts` maps it to these types.
+
 ## Install (GitHub Packages)
 
 `.npmrc` in the consuming repo:

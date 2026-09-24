@@ -1,10 +1,25 @@
 import { signedFetch } from "./signedFetch.js";
 import { effectiveId } from "./config.js";
-import { normalizeCategory, normalizeProduct, unwrapList } from "./normalize.js";
+import {
+  normalizeCategory,
+  normalizeProduct,
+  unwrapList,
+  normalizeOrganization,
+  normalizeTemplateAsOrganization,
+  normalizeTheme,
+  normalizeContact,
+  normalizeTemplateContact,
+} from "./normalize.js";
 import type {
   StorefrontConfig,
+  StorefrontOrganization,
   StorefrontTheme,
   StorefrontContact,
+  WirePublicOrganization,
+  WireTemplate,
+  WirePublicBranding,
+  WirePublicContact,
+  WireTemplateContact,
   StorefrontCategory,
   StorefrontProduct,
   StorefrontPage,
@@ -85,8 +100,27 @@ export function createStorefrontClient(opts: StorefrontClientOptions) {
     mode: config.mode,
     id,
 
-    getTheme: () => get<StorefrontTheme>(contentPath("theme")),
-    getContact: () => get<StorefrontContact>(contentPath("contact")),
+    /** The store's name, slug, description and owner logo. */
+    async getOrganization(): Promise<StorefrontOrganization> {
+      const key = requireId();
+      return isDemo
+        ? normalizeTemplateAsOrganization(await get<WireTemplate>(`/api/templates/${key}`))
+        : normalizeOrganization(
+            await get<WirePublicOrganization>(`/api/public/organizations/${key}`),
+          );
+    },
+
+    /** Colors, fonts and logo (owner logo first, resolved by the backend). */
+    async getTheme(): Promise<StorefrontTheme> {
+      return normalizeTheme(await get<WirePublicBranding>(contentPath("theme")));
+    },
+
+    /** Contact with structured phone/whatsapp; empty fields are null. */
+    async getContact(): Promise<StorefrontContact> {
+      return isDemo
+        ? normalizeTemplateContact(await get<WireTemplateContact>(contentPath("contact")))
+        : normalizeContact(await get<WirePublicContact>(contentPath("contact")));
+    },
     getPages: () => get<StorefrontPage[]>(contentPath("pages")),
     getPage: (slug: string) => get<StorefrontPage>(contentPath(`pages/${slug}`)),
 

@@ -1,6 +1,6 @@
 {
   "name": "@chepelcr/tsuru-storefront-sdk",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Shared storefront data layer for Tsuru templates: /config.json mode resolution, guest SigV4 signing (W7 identity pool), the public-API client (demo vs live org URLs), and shared DTO contracts.",
   "type": "module",
   "main": "./dist/index.js",

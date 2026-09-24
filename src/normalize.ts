@@ -1,6 +1,16 @@
 import type {
   StorefrontProduct,
   StorefrontCategory,
+  StorefrontOrganization,
+  StorefrontTheme,
+  StorefrontContact,
+  StorefrontPhone,
+  WirePublicOrganization,
+  WireTemplate,
+  WirePublicBranding,
+  WirePublicContact,
+  WirePublicPhone,
+  WireTemplateContact,
 } from "./types.js";
 
 /** First defined value among the given keys (handles snake_case ⟷ camelCase). */
@@ -64,4 +74,85 @@ function numOrNull(v: unknown): number | null {
   if (v === undefined || v === null || v === "") return null;
   const n = Number(v);
   return Number.isNaN(n) ? null : n;
+}
+
+// ── Store identity / branding / contact ─────────────────────────────────────
+
+export function normalizeOrganization(o: WirePublicOrganization): StorefrontOrganization {
+  return {
+    id: o.id,
+    name: o.name,
+    slug: o.slug,
+    subdomain: o.subdomain,
+    description: o.description,
+    logoUrl: o.logo_url,
+  };
+}
+
+/** Demo stores present the template itself as the store. */
+export function normalizeTemplateAsOrganization(t: WireTemplate): StorefrontOrganization {
+  return {
+    id: t.id,
+    name: t.display_name,
+    slug: t.name,
+    subdomain: null,
+    description: t.description,
+    logoUrl: null,
+  };
+}
+
+export function normalizeTheme(t: WirePublicBranding): StorefrontTheme {
+  return {
+    primaryColor: t.primary_color,
+    secondaryColor: t.secondary_color,
+    logoUrl: t.logo_url,
+    faviconUrl: t.favicon_url,
+    fontFamily: t.font_family,
+    loadingIcon: t.loading_icon,
+    productFallbackIcon: t.product_fallback_icon,
+  };
+}
+
+function normalizePhone(p: WirePublicPhone | null): StorefrontPhone | null {
+  if (!p) return null;
+  return { countryCode: p.country_code, dialCode: p.dial_code, number: p.number };
+}
+
+export function normalizeContact(c: WirePublicContact): StorefrontContact {
+  return {
+    email: c.email,
+    phone: normalizePhone(c.phone),
+    whatsapp: normalizePhone(c.whatsapp),
+    address: c.address,
+    country: c.country,
+    state: c.state,
+    city: c.city,
+    postalCode: c.postal_code,
+    facebookUrl: c.facebook_url,
+    instagramUrl: c.instagram_url,
+    twitterUrl: c.twitter_url,
+    businessHours: c.business_hours,
+  };
+}
+
+function flatPhone(value: string | null): StorefrontPhone | null {
+  const digits = (value ?? "").replace(/\D/g, "");
+  return digits ? { countryCode: null, dialCode: null, number: digits } : null;
+}
+
+export function normalizeTemplateContact(c: WireTemplateContact): StorefrontContact {
+  return {
+    email: c.email,
+    phone: flatPhone(c.phone),
+    whatsapp: flatPhone(c.whatsapp_number),
+    address: c.address,
+    country: null,
+    state: null,
+    city: null,
+    postalCode: null,
+    facebookUrl: c.facebook_url,
+    instagramUrl: c.instagram_url,
+    twitterUrl: c.twitter_url,
+    businessHours: c.business_hours == null ? null : JSON.stringify(c.business_hours),
+  };
 }

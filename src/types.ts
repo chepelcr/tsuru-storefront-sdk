@@ -20,21 +20,60 @@ export interface StorefrontConfig {
   templateId?: string;
 }
 
-export interface StorefrontTheme {
-  primaryColor?: string | null;
-  secondaryColor?: string | null;
-  logoUrl?: string | null;
-  faviconUrl?: string | null;
-  fontFamily?: string | null;
-  [key: string]: unknown;
+/**
+ * The store's identity. Live: management-be's PublicOrganizationResponse. Demo:
+ * the template row (its display name stands in for the store name).
+ */
+export interface StorefrontOrganization {
+  id: string;
+  name: string;
+  slug: string;
+  subdomain: string | null;
+  description: string | null;
+  /** The owner's uploaded logo. `StorefrontTheme.logoUrl` already prefers it. */
+  logoUrl: string | null;
 }
 
+/** Live: management-be's PublicBrandingResponse. */
+export interface StorefrontTheme {
+  primaryColor: string | null;
+  secondaryColor: string | null;
+  /** Owner logo first, template placeholder second (resolved by the backend). */
+  logoUrl: string | null;
+  faviconUrl: string | null;
+  fontFamily: string | null;
+  loadingIcon: string | null;
+  productFallbackIcon: string | null;
+}
+
+/**
+ * A structured phone (management-be PublicPhoneResponse, same shape as
+ * store-be's PhoneResponse). `dialCode` is resolved by the backend through the
+ * countries catalog, so a template never maps ISO codes itself.
+ */
+export interface StorefrontPhone {
+  /** ISO numeric country, e.g. "188". NOT a dialing code. */
+  countryCode: string | null;
+  /** Dialing code digits without "+", e.g. "506". */
+  dialCode: string | null;
+  /** Local digits, e.g. "88887777". */
+  number: string;
+}
+
+/** Live: management-be's PublicContactResponse. Empty fields are null, never placeholders. */
 export interface StorefrontContact {
-  email?: string | null;
-  phone?: string | null;
-  phoneCountryCode?: string | null;
-  address?: string | null;
-  [key: string]: unknown;
+  email: string | null;
+  phone: StorefrontPhone | null;
+  whatsapp: StorefrontPhone | null;
+  address: string | null;
+  country: string | null;
+  state: string | null;
+  city: string | null;
+  postalCode: string | null;
+  facebookUrl: string | null;
+  instagramUrl: string | null;
+  twitterUrl: string | null;
+  businessHours: string | null;
 }
 
 export interface StorefrontCategory {
@@ -99,4 +138,71 @@ export interface ProductFilters {
   type?: string;
   categoryId?: string;
   [key: string]: string | number | boolean | undefined;
+}
+
+// ── Wire shapes (snake_case, exactly as management-be serializes them) ─────
+// Normalized into the canonical types above by normalize.ts; templates never
+// see these.
+
+export interface WirePublicOrganization {
+  id: string;
+  name: string;
+  slug: string;
+  subdomain: string | null;
+  description: string | null;
+  logo_url: string | null;
+}
+
+/** Demo mode: management-be's template row (GET /api/templates/{id}). */
+export interface WireTemplate {
+  id: string;
+  name: string;
+  display_name: string;
+  description: string | null;
+}
+
+export interface WirePublicBranding {
+  primary_color: string | null;
+  secondary_color: string | null;
+  logo_url: string | null;
+  favicon_url: string | null;
+  font_family: string | null;
+  loading_icon: string | null;
+  product_fallback_icon: string | null;
+}
+
+export interface WirePublicPhone {
+  country_code: string | null;
+  dial_code: string | null;
+  number: string;
+}
+
+export interface WirePublicContact {
+  email: string | null;
+  phone: WirePublicPhone | null;
+  whatsapp: WirePublicPhone | null;
+  address: string | null;
+  country: string | null;
+  state: string | null;
+  city: string | null;
+  postal_code: string | null;
+  facebook_url: string | null;
+  instagram_url: string | null;
+  twitter_url: string | null;
+  business_hours: string | null;
+}
+
+/**
+ * Demo mode: the template's contact row. It predates the structured phone and
+ * carries a flat number; demo stores have no org country to resolve.
+ */
+export interface WireTemplateContact {
+  email: string | null;
+  phone: string | null;
+  whatsapp_number: string | null;
+  address: string | null;
+  facebook_url: string | null;
+  instagram_url: string | null;
+  twitter_url: string | null;
+  business_hours: unknown;
 }

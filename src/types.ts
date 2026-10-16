@@ -132,7 +132,6 @@ export interface NeighborhoodRow {
 }
 
 export interface ProductFilters {
-  isService?: boolean;
   onSale?: boolean;
   isOffer?: boolean;
   type?: string;

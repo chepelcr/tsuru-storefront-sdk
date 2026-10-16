@@ -174,7 +174,6 @@ export function createStorefrontClient(opts: StorefrontClientOptions) {
       if (filters) {
         // demo (management-be) reads discrete params; prod (store-be) reads a `search` DSL.
         if (isDemo) {
-          if (filters.isService !== undefined) params.isService = filters.isService;
           if (filters.onSale !== undefined) params.onSale = filters.onSale;
           if (filters.type) params.type = filters.type;
         } else {

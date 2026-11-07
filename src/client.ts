@@ -48,8 +48,10 @@ const CR_ISO = "188";
  * Build the mode-aware, guest-signed storefront client.
  *
  * Demo mode reads the template rows (`/api/templates/{templateId}/…`); live/prod
- * mode reads the org — content via management-be (`/api/public/organizations/{orgId}/…`)
- * and products/categories via store-be (`/api/organizations/{orgId}/…`). Location
+ * mode reads the org — content via management-be and the catalog via store-be,
+ * both under `/api/public/organizations/{orgId}/…`. The store-be catalog only
+ * ever returns ACTIVE products the merchant left public. Orders still go to
+ * store-be's `/api/organizations/{orgId}/orders`. Location
  * catalogs (data-be) are served at `/countries/…` (no `/api` prefix). Every request
  * is SigV4-signed with guest credentials.
  */
@@ -90,7 +92,15 @@ export function createStorefrontClient(opts: StorefrontClientOptions) {
       : `/api/public/organizations/${key}/${resource}`;
   }
 
-  /** Commerce base: demo → template rows (management-be); prod → org (store-be). */
+  /** Catalog base: demo → template rows (management-be); prod → store-be public catalog. */
+  function catalogPath(resource: string): string {
+    const key = requireId();
+    return isDemo
+      ? `/api/templates/${key}/${resource}`
+      : `/api/public/organizations/${key}/${resource}`;
+  }
+
+  /** Commerce base (orders): demo → template rows (management-be); prod → org (store-be). */
   function commercePath(resource: string): string {
     const key = requireId();
     return isDemo
@@ -165,7 +175,7 @@ export function createStorefrontClient(opts: StorefrontClientOptions) {
     getPage: (slug: string) => get<StorefrontPage>(contentPath(`pages/${slug}`)),
 
     async getCategories(): Promise<StorefrontCategory[]> {
-      const res = await get<any>(commercePath("categories"));
+      const res = await get<any>(catalogPath("categories"), isDemo ? undefined : { page_size: 100 });
       return unwrapList(res).map(normalizeCategory);
     },
 
@@ -177,15 +187,50 @@ export function createStorefrontClient(opts: StorefrontClientOptions) {
           if (filters.onSale !== undefined) params.onSale = filters.onSale;
           if (filters.type) params.type = filters.type;
         } else {
+          // store-be's filter DSL is snake_case: `categoryId:`/`isOffer:` matched
+          // nothing, so category and offer filters were silently ignored.
           const parts: string[] = [];
           if (filters.type) parts.push(`type:${filters.type}`);
-          if (filters.isOffer !== undefined) parts.push(`isOffer:${filters.isOffer}`);
-          if (filters.categoryId) parts.push(`categoryId:${filters.categoryId}`);
+          if (filters.isOffer !== undefined) parts.push(`is_offer:${filters.isOffer}`);
+          if (filters.categoryId) parts.push(`category_id:${filters.categoryId}`);
           if (parts.length) params.search = parts.join(",");
+          if (filters.query) params.q = String(filters.query).trim();
+          if (filters.page) params.page = filters.page;
+          if (filters.pageSize) params.page_size = filters.pageSize;
         }
       }
-      const res = await get<any>(commercePath("products"), params);
+      const res = await get<any>(catalogPath("products"), params);
       return unwrapList(res).map(normalizeProduct);
+    },
+
+    /**
+     * Free-text search over the store's public catalog (name, description and
+     * product codes). Demo templates have no search route, so demo mode filters
+     * the template rows client-side.
+     */
+    async searchProducts(query: string, filters?: ProductFilters): Promise<StorefrontProduct[]> {
+      const q = query.trim();
+      if (!isDemo) return this.getProducts({ ...filters, query: q });
+      const needle = q.toLocaleLowerCase();
+      const rows = await this.getProducts(filters);
+      return needle
+        ? rows.filter((p) =>
+            [p.name, p.description].some((v) => (v ?? "").toLocaleLowerCase().includes(needle)),
+          )
+        : rows;
+    },
+
+    /** One product of the public catalog; null when it is not (or no longer) public. */
+    async getProduct(productId: string): Promise<StorefrontProduct | null> {
+      if (isDemo) {
+        return (await this.getProducts()).find((p) => p.id === productId) ?? null;
+      }
+      try {
+        return normalizeProduct(await get<any>(catalogPath(`products/${encodeURIComponent(productId)}`)));
+      } catch (error) {
+        if (error instanceof Error && error.message.startsWith("Storefront API 404")) return null;
+        throw error;
+      }
     },
 
     // ── CR location cascade (data-be, no /api prefix) ──────────────────────

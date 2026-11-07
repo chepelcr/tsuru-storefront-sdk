@@ -24,7 +24,7 @@ for (const config of [
           assert.equal(url.pathname, '/api/templates/template-1/products');
           assert.equal(url.searchParams.get('type'), type);
         } else {
-          assert.equal(url.pathname, '/api/organizations/org-1/products');
+          assert.equal(url.pathname, '/api/public/organizations/org-1/products');
           assert.equal(url.searchParams.get('search'), `type:${type}`);
         }
         assert.equal(url.searchParams.has('isService'), false);
@@ -33,3 +33,32 @@ for (const config of [
     }
   });
 }
+
+describe('live public catalog', () => {
+  const config = { mode: 'prod', orgId: 'org-1' };
+
+  it('searches with q and sends store-be snake_case filters', async () => {
+    transport.mock.mockImplementation(async () => new Response(JSON.stringify({ data: [] }), { status: 200 }));
+    const client = createStorefrontClient({ config, host: 'https://storefront.test' });
+    await client.searchProducts('  café  ', { categoryId: 'cat-1', isOffer: true, pageSize: 24 });
+    const url = new URL(transport.mock.calls[0].arguments[0]);
+    assert.equal(url.pathname, '/api/public/organizations/org-1/products');
+    assert.equal(url.searchParams.get('q'), 'café');
+    assert.equal(url.searchParams.get('search'), 'is_offer:true,category_id:cat-1');
+    assert.equal(url.searchParams.get('page_size'), '24');
+  });
+
+  it('reads categories from the public catalog', async () => {
+    transport.mock.mockImplementation(async () => new Response(JSON.stringify({ data: [] }), { status: 200 }));
+    const client = createStorefrontClient({ config, host: 'https://storefront.test' });
+    await client.getCategories();
+    assert.equal(new URL(transport.mock.calls[0].arguments[0]).pathname, '/api/public/organizations/org-1/categories');
+  });
+
+  it('returns null for a product that is not public', async () => {
+    transport.mock.mockImplementation(async () => new Response('{"detail":"Product not found"}', { status: 404 }));
+    const client = createStorefrontClient({ config, host: 'https://storefront.test' });
+    assert.equal(await client.getProduct('p-1'), null);
+    assert.equal(new URL(transport.mock.calls[0].arguments[0]).pathname, '/api/public/organizations/org-1/products/p-1');
+  });
+});

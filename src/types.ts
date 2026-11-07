@@ -136,6 +136,10 @@ export interface ProductFilters {
   isOffer?: boolean;
   type?: string;
   categoryId?: string;
+  /** Free-text search (live stores: name, description, product codes). */
+  query?: string;
+  page?: number;
+  pageSize?: number;
   [key: string]: string | number | boolean | undefined;
 }
 

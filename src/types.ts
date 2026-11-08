@@ -82,7 +82,8 @@ export interface StorefrontCategory {
   slug?: string | null;
   description?: string | null;
   imageUrl?: string | null;
-  isActive?: boolean;
+  /** 1 active · 2 inactive · 3 deleted. The public catalog serves only 1. */
+  status: number;
   [key: string]: unknown;
 }
 
@@ -99,7 +100,6 @@ export interface StorefrontProduct {
   type: string;
   /** 1=active, 2=inactive, 3=deleted (mirrors products.status). */
   status: number;
-  isActive: boolean;
   onSale: boolean;
   /** Storefront "Oferta" flag (W10), independent of onSale. */
   isOffer: boolean;
@@ -118,7 +118,8 @@ export interface StorefrontPage {
   slug: string;
   title?: string | null;
   type?: string | null;
-  isActive?: boolean;
+  /** 1 active · 2 inactive · 3 deleted. The public API serves only 1. */
+  status?: number;
   [key: string]: unknown;
 }
 

@@ -36,14 +36,14 @@ export function normalizeCategory(o: Record<string, any>): StorefrontCategory {
     slug: pick<string>(o, "slug") ?? null,
     description: pick<string>(o, "description") ?? null,
     imageUrl: pick<string>(o, "imageUrl", "image_url", "image_1_url", "image1Url") ?? null,
-    isActive: pick<boolean>(o, "isActive", "is_active") ?? true,
+    status: Number(pick(o, "status") ?? 1),
     ...o,
   };
 }
 
 export function normalizeProduct(o: Record<string, any>): StorefrontProduct {
   const category = pick<Record<string, any>>(o, "category") ?? {};
-  const status = pick<number>(o, "status") ?? (pick<boolean>(o, "isActive", "is_active") ? 1 : 2);
+  const status = Number(pick(o, "status") ?? 1);
   return {
     id: pick<string>(o, "id", "product_id", "productId") ?? "",
     name: pick<string>(o, "name") ?? "",
@@ -57,7 +57,6 @@ export function normalizeProduct(o: Record<string, any>): StorefrontProduct {
     categoryName: pick<string>(category, "name") ?? pick<string>(o, "categoryName", "category_name") ?? null,
     type: pick<string>(o, "type") ?? "product",
     status,
-    isActive: status === 1,
     onSale: Boolean(pick(o, "onSale", "on_sale") ?? false),
     isOffer: Boolean(pick(o, "isOffer", "is_offer") ?? false),
     originalPrice: numOrNull(pick(o, "originalPrice", "original_price")),
